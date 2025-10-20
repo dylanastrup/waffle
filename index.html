@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Waffle Wednesday Hub</title>
+    <link rel="icon" href="waffle.jpg" type="image/jpeg">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -149,11 +150,9 @@
             </div>
         </main>
         
-        <!-- Footer with App ID and Admin Toggle -->
+        <!-- Footer with Admin Toggle -->
         <footer class="text-center mt-8 text-sm text-gray-500">
-            <p>Your unique App ID:</p>
-            <p id="app-id" class="font-mono bg-gray-200 p-1 rounded-md inline-block"></p>
-            <div id="admin-toggle" class="mt-4 cursor-pointer inline-flex items-center gap-2 text-gray-400 hover:text-amber-600">
+             <div id="admin-toggle" class="mt-4 cursor-pointer inline-flex items-center gap-2 text-gray-400 hover:text-amber-600">
                 <i id="admin-icon" data-lucide="lock"></i>
                 <span id="admin-text">Admin Login</span>
             </div>
@@ -202,12 +201,12 @@
 
         // --- Firebase Config ---
         const firebaseConfig = {
-        apiKey: "AIzaSyDz8oXFpj0GFHeLz0Q5WW2OMF7JZl974Xw",
-        authDomain: "waffle-wednesday-hub.firebaseapp.com",
-        projectId: "waffle-wednesday-hub",
-        storageBucket: "waffle-wednesday-hub.appspot.com",
-        messagingSenderId: "73629645175",
-        appId: "1:73629645175:web:185952db743905e5730972"
+            apiKey: "AIzaSyDz8oXFpj0GFHeLz0Q5WW2OMF7JZl974Xw",
+            authDomain: "waffle-wednesday-hub.firebaseapp.com",
+            projectId: "waffle-wednesday-hub",
+            storageBucket: "waffle-wednesday-hub.appspot.com",
+            messagingSenderId: "73629645175",
+            appId: "1:73629645175:web:185952db743905e5730972"
         };
         const appId = firebaseConfig.projectId || 'waffle-wednesday-hub';
         
@@ -272,8 +271,7 @@
 
         const currentWednesday = getMostRecentWednesday();
         displayedWednesday = getMostRecentWednesday(); // Initialize displayed date
-        document.getElementById('app-id').textContent = appId;
-
+        
         // --- Admin & Auth ---
         function checkAdminStatus() {
             if (sessionStorage.getItem('waffleAdmin') === 'true') {
@@ -326,13 +324,7 @@
             });
 
             try {
-                // In a live environment, __initial_auth_token won't be defined.
-                // It will just sign in anonymously.
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
             } catch (error)
             {
                 console.error("Firebase authentication failed:", error);
@@ -345,10 +337,10 @@
         function initializeAppData() {
             if (!authReady || !currentUserId) return;
             
-            const membersRef = collection(db, `/artifacts/${appId}/public/data/members`);
-            const submissionsRef = collection(db, `/artifacts/${appId}/public/data/submissions`);
+            const membersPath = `/artifacts/${appId}/public/data/members`;
+            const submissionsPath = `/artifacts/${appId}/public/data/submissions`;
 
-            onSnapshot(query(membersRef), (snapshot) => {
+            onSnapshot(query(collection(db, membersPath)), (snapshot) => {
                 members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAll();
                 hideLoading();
@@ -357,7 +349,7 @@
                 loadingSpinner.innerHTML = `<p class="text-red-500 text-center">Error loading data. Check console and Firebase rules.</p>`;
             });
 
-            onSnapshot(query(submissionsRef), (snapshot) => {
+            onSnapshot(query(collection(db, submissionsPath)), (snapshot) => {
                 submissions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderAll();
             }, (error) => {
