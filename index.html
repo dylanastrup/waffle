@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waffle Wednesday Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* NOTE: For the background image to work, 'willFlag.jpg' must be in the same folder as this html file. */
+            background-image: linear-gradient(rgba(255, 251, 235, 0.9), rgba(255, 251, 235, 0.9)), url('willFlag.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+        }
+        .waffle-pattern {
+            background-image:
+                linear-gradient(rgba(239, 201, 136, 0.5) 1px, transparent 1px),
+                linear-gradient(to right, rgba(239, 201, 136, 0.5) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .btn {
+            @apply font-bold py-2 px-4 rounded-lg transition-colors shadow-md flex items-center justify-center gap-2;
+        }
+        .btn-primary {
+            @apply bg-amber-500 text-white hover:bg-amber-600;
+        }
+        .btn-secondary {
+            @apply bg-gray-200 text-gray-700 hover:bg-gray-300;
+        }
+        .btn-ghost {
+             @apply bg-amber-100 text-amber-800 hover:bg-amber-200;
+        }
+        .btn:disabled {
+            @apply opacity-50 cursor-not-allowed;
+        }
+        .card {
+            @apply bg-white rounded-xl shadow-lg p-4 transition-all;
+        }
+        /* More explicit styling for tabs to force preview update */
+        .tab {
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border-width: 2px;
+        }
+        .tab-active {
+            background-color: #f59e0b; /* amber-500 */
+            color: white;
+            border-color: #f59e0b; /* amber-500 */
+        }
+        .tab-inactive {
+            background-color: white;
+            color: #b45309; /* amber-700 */
+            border-color: #fcd34d; /* amber-300 */
+        }
+        .tab-inactive:hover {
+            background-color: #fef3c7; /* amber-100 */
+        }
+        /* Spinner for loading state */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #ca8a04; /* Amber */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="app-container" class="max-w-2xl mx-auto p-4 md:p-6 min-h-screen">
+        <header class="text-center mb-6">
+            <h1 id="main-title" class="text-4xl font-bold text-amber-800 mt-2">Waffle Wednesday Hub</h1>
+            <p id="waffle-date" class="text-amber-600 text-lg font-semibold"></p>
+            <p id="local-time-clock" class="text-gray-500 text-sm mt-2"></p>
+        </header>
+
+        <div id="loading-spinner" class="flex justify-center items-center py-16">
+            <div class="loader"></div>
+        </div>
+
+        <main id="main-content" class="hidden">
+            <div id="add-member-card" class="card mb-6 waffle-pattern hidden">
+                <h2 class="text-xl font-bold mb-2 text-amber-900">Add a Friend</h2>
+                <form id="add-member-form" class="flex flex-col sm-flex-row gap-2">
+                    <input type="text" id="new-member-name" placeholder="Enter friend's name" class="flex-grow p-2 border rounded-md focus:ring-2 focus:ring-amber-400" required>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="user-plus"></i>
+                        Add Member
+                    </button>
+                </form>
+            </div>
+
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex gap-3">
+                    <div id="tab-dashboard" class="tab tab-active">Weekly View</div>
+                    <div id="tab-stats" class="tab tab-inactive">All-Time Stats</div>
+                </div>
+                <button id="toggle-add-member-btn" class="btn btn-ghost hidden">
+                    <i data-lucide="user-plus"></i>
+                    <span>Add Friend</span>
+                </button>
+            </div>
+
+            <div id="view-dashboard">
+                 <div class="flex justify-between items-center mb-4 bg-amber-50 p-2 rounded-lg">
+                    <button id="prev-week-btn" class="btn btn-ghost"><i data-lucide="arrow-left"></i> Prev</button>
+                    <button id="today-btn" class="btn btn-ghost font-bold">This Week</button>
+                    <button id="next-week-btn" class="btn btn-ghost">Next <i data-lucide="arrow-right"></i></button>
+                </div>
+                <div id="members-list" class="space-y-3">
+                    </div>
+            </div>
+
+            <div id="view-stats" class="hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <div id="admin-controls-stats" class="hidden">
+                        </div>
+                    <button id="export-btn" class="btn btn-secondary ml-auto">
+                        <i data-lucide="download"></i>
+                        Export to Excel (CSV)
+                    </button>
+                </div>
+                <div id="stats-list" class="space-y-3">
+                    </div>
+            </div>
+        </main>
+        
+        <footer class="text-center mt-8 text-sm text-gray-500">
+            <p>Your unique App ID:</p>
+            <p id="app-id" class="font-mono bg-gray-200 p-1 rounded-md inline-block"></p>
+            <div id="admin-toggle" class="mt-4 cursor-pointer inline-flex items-center gap-2 text-gray-400 hover:text-amber-600">
+                <i id="admin-icon" data-lucide="lock"></i>
+                <span id="admin-text">Admin Login</span>
+            </div>
+        </footer>
+    </div>
+    
+    <div id="duration-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h2 id="modal-title" class="text-2xl font-bold mb-4 text-amber-900">Log Waffle Time</h2>
+            <form id="duration-form">
+                <div class="flex items-center justify-center gap-2 mb-6">
+                    <input type="number" id="duration-minutes" placeholder="MM" min="0" max="59" class="w-24 text-center text-2xl p-2 border-2 rounded-md focus:ring-2 focus:ring-amber-400" required>
+                    <span class="text-2xl font-bold text-gray-400">:</span>
+                    <input type="number" id="duration-seconds" placeholder="SS" min="0" max="59" class="w-24 text-center text-2xl p-2 border-2 rounded-md focus:ring-2 focus:ring-amber-400" required>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancel-duration" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Time</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="password-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4 text-amber-900">Admin Login</h2>
+            <form id="password-form">
+                <p class="text-gray-600 mb-4">Enter the password to unlock admin controls.</p>
+                <input type="password" id="password-input" class="w-full p-2 border rounded-md focus:ring-2 focus:ring-amber-400 mb-4" required>
+                <div id="password-error" class="text-red-500 text-sm mb-4 hidden">Incorrect password. Please try again.</div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" id="cancel-password" class="btn btn-secondary">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Firebase SDK Imports ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp, getDocs, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- App ID and Firebase Config ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'waffle-wednesday-dev';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+        
+        // --- Firebase Initialization ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- DOM Elements ---
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const mainContent = document.getElementById('main-content');
+        const mainTitleEl = document.getElementById('main-title');
+        const waffleDateEl = document.getElementById('waffle-date');
+        const localTimeClockEl = document.getElementById('local-time-clock');
+        const addMemberCard = document.getElementById('add-member-card');
+        const toggleAddMemberBtn = document.getElementById('toggle-add-member-btn');
+        const addMemberForm = document.getElementById('add-member-form');
+        const newMemberNameInput = document.getElementById('new-member-name');
+        const membersListEl = document.getElementById('members-list');
+        const statsListEl = document.getElementById('stats-list');
+        const tabDashboard = document.getElementById('tab-dashboard');
+        const tabStats = document.getElementById('tab-stats');
+        const viewDashboard = document.getElementById('view-dashboard');
+        const viewStats = document.getElementById('view-stats');
+        const prevWeekBtn = document.getElementById('prev-week-btn');
+        const nextWeekBtn = document.getElementById('next-week-btn');
+        const todayBtn = document.getElementById('today-btn');
+        const durationModal = document.getElementById('duration-modal');
+        const durationForm = document.getElementById('duration-form');
+        const cancelDurationBtn = document.getElementById('cancel-duration');
+        const modalTitle = document.getElementById('modal-title');
+        const durationMinutesInput = document.getElementById('duration-minutes');
+        const durationSecondsInput = document.getElementById('duration-seconds');
+        const exportBtn = document.getElementById('export-btn');
+        const adminToggle = document.getElementById('admin-toggle');
+        const adminIcon = document.getElementById('admin-icon');
+        const adminText = document.getElementById('admin-text');
+        const passwordModal = document.getElementById('password-modal');
+        const passwordForm = document.getElementById('password-form');
+        const passwordInput = document.getElementById('password-input');
+        const cancelPasswordBtn = document.getElementById('cancel-password');
+        const passwordError = document.getElementById('password-error');
+        
+        // --- App State ---
+        let members = [];
+        let submissions = [];
+        let currentUserId = null;
+        let authReady = false;
+        let displayedWednesday;
+        let modalContext = {};
+        let isAdmin = false;
+
+        // --- Date Logic ---
+        function getMostRecentWednesday(date = new Date()) {
+            const d = new Date(date);
+            const dayOfWeek = d.getDay(); // Sunday = 0, Wednesday = 3
+            const diff = (dayOfWeek < 3) ? (dayOfWeek + 4) : (dayOfWeek - 3);
+            d.setDate(d.getDate() - diff);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        const currentWednesday = getMostRecentWednesday();
+        displayedWednesday = getMostRecentWednesday(); // Initialize displayed date
+        document.getElementById('app-id').textContent = appId;
+
+        // --- Admin & Auth ---
+        function checkAdminStatus() {
+            if (sessionStorage.getItem('waffleAdmin') === 'true') {
+                isAdmin = true;
+                adminIcon.setAttribute('data-lucide', 'unlock');
+                adminText.textContent = 'Admin Mode';
+                toggleAddMemberBtn.classList.remove('hidden');
+            } else {
+                isAdmin = false;
+                adminIcon.setAttribute('data-lucide', 'lock');
+                adminText.textContent = 'Admin Login';
+                toggleAddMemberBtn.classList.add('hidden');
+                addMemberCard.classList.add('hidden'); // Ensure form is hidden
+            }
+            lucide.createIcons();
+            renderAll(); // Re-render to show/hide admin controls
+        }
+
+        adminToggle.addEventListener('click', () => {
+            if (isAdmin) return;
+            passwordInput.value = '';
+            passwordError.classList.add('hidden');
+            passwordModal.classList.remove('hidden');
+            passwordInput.focus();
+        });
+
+        passwordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const password = passwordInput.value;
+            if (password === 'Waffle') { 
+                sessionStorage.setItem('waffleAdmin', 'true');
+                passwordModal.classList.add('hidden');
+                checkAdminStatus();
+            } else {
+                passwordError.classList.remove('hidden');
+            }
+        });
+
+        cancelPasswordBtn.addEventListener('click', () => {
+            passwordModal.classList.add('hidden');
+        });
+
+        async function handleAuthentication() {
+            onAuthStateChanged(auth, user => {
+                if (user && !authReady) {
+                    currentUserId = user.uid;
+                    authReady = true;
+                    initializeAppData();
+                }
+            });
+
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Firebase authentication failed:", error);
+                mainContent.innerHTML = `<div class="text-center text-red-500 p-4">Could not connect. Please refresh.</div>`;
+                hideLoading();
+            }
+        }
+        
+        // --- Data Initialization ---
+        function initializeAppData() {
+            if (!authReady || !currentUserId) return;
+            
+            const membersRef = collection(db, `/artifacts/${appId}/public/data/members`);
+            const submissionsRef = collection(db, `/artifacts/${appId}/public/data/submissions`);
+
+            onSnapshot(query(membersRef), (snapshot) => {
+                members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+                hideLoading();
+            }, console.error);
+
+            onSnapshot(query(submissionsRef), (snapshot) => {
+                submissions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderAll();
+            }, console.error);
+        }
+        
+        // --- Rendering Logic ---
+        function updateDisplayedDate() {
+            const today = new Date();
+            const dayOfWeek = today.getDay(); // Sunday = 0, Wednesday = 3
+            const isCurrentWeek = displayedWednesday.getTime() === currentWednesday.getTime();
+
+            if (isCurrentWeek) {
+                // For the current week, show the dynamic header
+                if (dayOfWeek === 3) {
+                    mainTitleEl.textContent = "It's Wednesday!!!";
+                    waffleDateEl.textContent = "Let's see those waffles";
+                } else {
+                    mainTitleEl.textContent = "It's not Wednesday :(";
+                    waffleDateEl.textContent = "Wednesday will be here before we know it";
+                }
+            } else {
+                // When viewing history, revert to the original title and show the date.
+                mainTitleEl.textContent = "Waffle Wednesday Hub";
+                waffleDateEl.textContent = `Week of ${displayedWednesday.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+            }
+
+            nextWeekBtn.disabled = displayedWednesday.getTime() >= currentWednesday.getTime();
+            
+            if (isCurrentWeek) {
+                todayBtn.innerHTML = 'This Week';
+                todayBtn.classList.add('font-bold');
+            } else {
+                const dateString = displayedWednesday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                todayBtn.textContent = dateString;
+                todayBtn.classList.remove('font-bold');
+            }
+        }
+
+        function renderAll() {
+            if (!authReady) return;
+            updateDisplayedDate();
+            renderDashboard();
+            renderStats();
+            lucide.createIcons();
+        }
+
+        function renderDashboard() {
+            membersListEl.innerHTML = '';
+            const wednesdayString = displayedWednesday.toISOString().split('T')[0];
+            const isPastWeek = displayedWednesday.getTime() < currentWednesday.getTime();
+
+            if (members.length === 0) {
+                membersListEl.innerHTML = `<div class="text-center text-gray-500 p-4">Add some friends to get started!</div>`;
+                return;
+            }
+
+            const sortedMembers = [...members].sort((a, b) => a.name.localeCompare(b.name));
+            sortedMembers.forEach(member => {
+                const submission = submissions.find(s => s.memberId === member.id && s.weekOf === wednesdayString);
+                const card = document.createElement('div');
+                card.className = `card flex items-center justify-between member-card ${submission ? 'bg-green-50 border-2 border-green-200' : ''}`;
+                card.dataset.memberId = member.id;
+                
+                let iconHtml = submission 
+                    ? `<div class="text-green-500"><i data-lucide="check-circle-2"></i></div>`
+                    : `<div class="text-amber-400"><i data-lucide="circle"></i></div>`;
+
+                let actionsHtml = '';
+                if (isAdmin) {
+                    if (submission) {
+                        const minutes = Math.floor((submission.durationSeconds || 0) / 60);
+                        const seconds = (submission.durationSeconds || 0) % 60;
+                        const durationText = `${String(minutes).padStart(1, '0')}:${String(seconds).padStart(2, '0')}`;
+                        
+                        actionsHtml = `
+                            <div class="flex items-center gap-2">
+                               <span class="edit-duration-btn font-semibold text-lg text-green-700 cursor-pointer hover:underline" data-submission-id="${submission.id}" data-duration="${submission.durationSeconds || 0}">${durationText}</span>
+                               <button class="undo-waffle-btn btn btn-secondary text-sm px-3 py-1" ${isPastWeek ? 'disabled' : ''}>Undo</button>
+                            </div>
+                        `;
+                    } else {
+                        actionsHtml = `
+                            <button class="log-waffle-btn btn btn-primary text-sm px-3 py-1" ${isPastWeek ? 'disabled' : ''}>Log Waffle</button>
+                        `;
+                    }
+                } else if (submission) {
+                     const minutes = Math.floor((submission.durationSeconds || 0) / 60);
+                     const seconds = (submission.durationSeconds || 0) % 60;
+                     const durationText = `${String(minutes).padStart(1, '0')}:${String(seconds).padStart(2, '0')}`;
+                     actionsHtml = `<span class="font-semibold text-lg text-green-700">${durationText}</span>`;
+                }
+                
+                const streak = calculateCurrentStreak(member.id, submissions, currentWednesday);
+                let streakHtml = '';
+                if (streak > 1) {
+                    streakHtml = `<span class="text-orange-500 font-bold flex items-center gap-1 text-sm ml-2">🔥 ${streak}</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${iconHtml}
+                        <div class="flex items-center">
+                            <span class="font-semibold text-lg">${member.name}</span>
+                            ${streakHtml}
+                        </div>
+                    </div>
+                    ${actionsHtml}
+                `;
+                membersListEl.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+        
+        function renderStats() {
+            statsListEl.innerHTML = '';
+            if (members.length === 0) {
+                statsListEl.innerHTML = `<div class="text-center text-gray-500 p-4">No stats to show yet.</div>`;
+                return;
+            }
+            
+            const memberStats = members.map(member => {
+                const memberSubmissions = submissions.filter(s => s.memberId === member.id);
+                const totalSeconds = memberSubmissions.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+                return {
+                    ...member,
+                    submissionCount: memberSubmissions.length,
+                    totalDuration: totalSeconds,
+                    currentStreak: calculateCurrentStreak(member.id, submissions, currentWednesday),
+                    highestStreak: calculateHighestStreak(member.id, submissions)
+                };
+            }).sort((a, b) => {
+                if (b.submissionCount !== a.submissionCount) {
+                    return b.submissionCount - a.submissionCount;
+                }
+                return b.totalDuration - a.totalDuration;
+            });
+
+            memberStats.forEach((stat, index) => {
+                let medal = '';
+                if (index === 0 && stat.submissionCount > 0) medal = '🥇';
+                if (index === 1 && stat.submissionCount > 0) medal = '🥈';
+                if (index === 2 && stat.submissionCount > 0) medal = '🥉';
+
+                const totalDurationFormatted = formatTotalDuration(stat.totalDuration);
+
+                const card = document.createElement('div');
+                card.className = 'card flex items-center justify-between';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl w-6">${medal}</span>
+                        <span class="font-semibold text-lg">${stat.name}</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold text-xl text-amber-600">${stat.submissionCount} <span class="text-sm font-normal text-gray-500">${stat.submissionCount === 1 ? 'Waffle' : 'Waffles'}</span></div>
+                        
+                        <div class="flex justify-end items-center gap-4 mt-1 text-sm text-gray-500">
+                             <div class="flex items-center gap-1" title="Current Streak">
+                                <span class="text-orange-500 font-bold">🔥 ${stat.currentStreak}</span>
+                            </div>
+                            <div class="flex items-center gap-1" title="Highest Streak">
+                                <span class="text-blue-500 font-bold">🏆 ${stat.highestStreak}</span>
+                            </div>
+                            <div title="Total Time spent waffling">${totalDurationFormatted}</div>
+                        </div>
+                    </div>
+                `;
+                statsListEl.appendChild(card);
+            });
+        }
+
+        // --- Event Handlers ---
+        toggleAddMemberBtn.addEventListener('click', () => {
+            if (!isAdmin) return;
+            const isHidden = addMemberCard.classList.toggle('hidden');
+            const buttonText = toggleAddMemberBtn.querySelector('span');
+            const buttonIcon = toggleAddMemberBtn.querySelector('i');
+
+            if (isHidden) {
+                buttonText.textContent = 'Add Friend';
+                buttonIcon.setAttribute('data-lucide', 'user-plus');
+            } else {
+                buttonText.textContent = 'Done';
+                buttonIcon.setAttribute('data-lucide', 'check');
+                newMemberNameInput.focus(); // Focus on the input when shown
+            }
+            lucide.createIcons();
+        });
+        
+        addMemberForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const name = newMemberNameInput.value.trim();
+            if (name && authReady) {
+                const membersRef = collection(db, `/artifacts/${appId}/public/data/members`);
+                await addDoc(membersRef, { name: name, createdAt: serverTimestamp() });
+                newMemberNameInput.value = '';
+            }
+        });
+
+        membersListEl.addEventListener('click', async (e) => {
+            if (!isAdmin) return; // Prevent actions if not admin
+
+            const logButton = e.target.closest('.log-waffle-btn');
+            const undoButton = e.target.closest('.undo-waffle-btn');
+            const editButton = e.target.closest('.edit-duration-btn');
+
+            const card = e.target.closest('.member-card');
+            if (!card) return;
+
+            const memberId = card.dataset.memberId;
+            const member = members.find(m => m.id === memberId);
+            const wednesdayString = displayedWednesday.toISOString().split('T')[0];
+
+            if (logButton) {
+                openDurationModal({ memberId, weekOf: wednesdayString, memberName: member.name });
+            } else if (undoButton) {
+                const submissionsRef = collection(db, `/artifacts/${appId}/public/data/submissions`);
+                const q = query(submissionsRef, where("memberId", "==", memberId), where("weekOf", "==", wednesdayString));
+                const querySnapshot = await getDocs(q);
+                querySnapshot.forEach((doc) => deleteDoc(doc.ref).catch(console.error));
+            } else if (editButton) {
+                const submissionId = editButton.dataset.submissionId;
+                const duration = parseInt(editButton.dataset.duration, 10);
+                openDurationModal({ memberId, weekOf: wednesdayString, memberName: member.name, submissionId, duration });
+            }
+        });
+
+        durationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const minutes = parseInt(durationMinutesInput.value) || 0;
+            const seconds = parseInt(durationSecondsInput.value) || 0;
+            const durationSeconds = (minutes * 60) + seconds;
+
+            const { submissionId, memberId, weekOf } = modalContext;
+
+            if (submissionId) { // Editing existing submission
+                const docRef = doc(db, `/artifacts/${appId}/public/data/submissions`, submissionId);
+                await updateDoc(docRef, { durationSeconds });
+            } else { // Creating new submission
+                const submissionsRef = collection(db, `/artifacts/${appId}/public/data/submissions`);
+                await addDoc(submissionsRef, { memberId, weekOf, durationSeconds, submittedAt: serverTimestamp() });
+            }
+            closeDurationModal();
+        });
+
+        cancelDurationBtn.addEventListener('click', closeDurationModal);
+
+        prevWeekBtn.addEventListener('click', () => {
+            displayedWednesday.setDate(displayedWednesday.getDate() - 7);
+            renderAll();
+        });
+
+        nextWeekBtn.addEventListener('click', () => {
+            if (displayedWednesday.getTime() < currentWednesday.getTime()) {
+                displayedWednesday.setDate(displayedWednesday.getDate() + 7);
+                renderAll();
+            }
+        });
+
+        todayBtn.addEventListener('click', () => {
+            displayedWednesday = getMostRecentWednesday();
+            renderAll();
+        });
+
+        function switchTabs(activeTab) {
+            const tabs = { dashboard: tabDashboard, stats: tabStats };
+            const views = { dashboard: viewDashboard, stats: viewStats };
+            
+            Object.keys(tabs).forEach(key => {
+                const is_active = key === activeTab;
+                tabs[key].classList.toggle('tab-active', is_active);
+                tabs[key].classList.toggle('tab-inactive', !is_active);
+                views[key].classList.toggle('hidden', !is_active);
+            });
+        }
+        tabDashboard.addEventListener('click', () => {
+            displayedWednesday = getMostRecentWednesday();
+            switchTabs('dashboard');
+            renderAll();
+        });
+        tabStats.addEventListener('click', () => switchTabs('stats'));
+        
+        exportBtn.addEventListener('click', () => {
+            const memberStats = members.map(member => {
+                const memberSubmissions = submissions.filter(s => s.memberId === member.id);
+                const totalSeconds = memberSubmissions.reduce((sum, s) => sum + (s.durationSeconds || 0), 0);
+                return {
+                    ...member,
+                    submissionCount: memberSubmissions.length,
+                    totalDuration: totalSeconds,
+                    currentStreak: calculateCurrentStreak(member.id, submissions, currentWednesday),
+                    highestStreak: calculateHighestStreak(member.id, submissions)
+                };
+            }).sort((a, b) => {
+                if (b.submissionCount !== a.submissionCount) {
+                    return b.submissionCount - a.submissionCount;
+                }
+                return b.totalDuration - a.totalDuration;
+            });
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            const headers = ["Name", "Total Waffles", "Total Time (Seconds)", "Current Streak", "Highest Streak"];
+            csvContent += headers.join(",") + "\r\n";
+
+            memberStats.forEach(stat => {
+                const row = [
+                    `"${stat.name}"`, // Wrap name in quotes to handle potential commas
+                    stat.submissionCount,
+                    stat.totalDuration,
+                    stat.currentStreak,
+                    stat.highestStreak
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "waffle_wednesday_stats.csv");
+            document.body.appendChild(link); // Required for Firefox to work
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // --- Modal Functions ---
+        function openDurationModal(context) {
+            modalContext = context;
+            durationForm.reset();
+            modalTitle.textContent = `Log Waffle for ${context.memberName}`;
+
+            if (context.submissionId && context.duration) { // Editing
+                const minutes = Math.floor(context.duration / 60);
+                const seconds = context.duration % 60;
+                durationMinutesInput.value = minutes;
+                durationSecondsInput.value = seconds;
+                modalTitle.textContent = `Edit Time for ${context.memberName}`;
+            }
+            durationModal.classList.remove('hidden');
+        }
+
+        function closeDurationModal() {
+            modalContext = {};
+            durationModal.classList.add('hidden');
+        }
+
+        // --- Clock Function ---
+        function startClock() {
+            function updateClock() {
+                if (localTimeClockEl) {
+                    const now = new Date();
+                    const options = {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZoneName: 'short'
+                    };
+                    localTimeClockEl.textContent = now.toLocaleString('en-US', options);
+                }
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        }
+
+        // --- Utility Functions ---
+        function hideLoading() {
+            loadingSpinner.style.display = 'none';
+            mainContent.classList.remove('hidden');
+        }
+        
+        function calculateCurrentStreak(memberId, allSubmissions, startWednesday) {
+            const memberSubmissionWeeks = new Set(
+                allSubmissions.filter(s => s.memberId === memberId).map(s => s.weekOf)
+            );
+
+            let streak = 0;
+            let checkDate = new Date(startWednesday);
+
+            while (true) {
+                const weekString = checkDate.toISOString().split('T')[0];
+                if (memberSubmissionWeeks.has(weekString)) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 7);
+                } else {
+                    break;
+                }
+            }
+            return streak;
+        }
+
+        function calculateHighestStreak(memberId, allSubmissions) {
+            if (allSubmissions.length === 0) return 0;
+
+            const memberSubmissionWeeks = [...new Set(
+                allSubmissions.filter(s => s.memberId === memberId).map(s => s.weekOf)
+            )].sort();
+
+            if (memberSubmissionWeeks.length === 0) return 0;
+            
+            if (memberSubmissionWeeks.length === 1) return 1;
+
+            let highestStreak = 0;
+            let currentStreak = 0;
+
+            if (memberSubmissionWeeks.length > 0) {
+              highestStreak = 1;
+              currentStreak = 1;
+            }
+
+            for (let i = 1; i < memberSubmissionWeeks.length; i++) {
+                const prevWeek = new Date(memberSubmissionWeeks[i-1]);
+                prevWeek.setDate(prevWeek.getDate() + 7);
+
+                if (prevWeek.toISOString().split('T')[0] === memberSubmissionWeeks[i]) {
+                    currentStreak++;
+                } else {
+                    currentStreak = 1;
+                }
+
+                if (currentStreak > highestStreak) {
+                    highestStreak = currentStreak;
+                }
+            }
+            return highestStreak;
+        }
+
+        function formatTotalDuration(totalSeconds) {
+            if (!totalSeconds) return '0m 0s';
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            let parts = [];
+            if (hours > 0) parts.push(`${hours}h`);
+            if (minutes > 0) parts.push(`${minutes}m`);
+            if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+            
+            return parts.join(' ');
+        }
+
+        // --- Initial Load ---
+        handleAuthentication();
+        startClock();
+        checkAdminStatus(); // Check for admin status on page load
+    </script>
+</body>
+</html>
