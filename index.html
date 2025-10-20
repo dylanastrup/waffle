@@ -372,7 +372,7 @@
                 waffleDateEl.textContent = `Week of ${displayedWednesday.toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
             }
 
-            nextWeekBtn.disabled = displayedWednesday.getTime() >= currentWednesday.getTime();
+            nextWeekBtn.classList.toggle('hidden', isCurrentWeek);
             
             if (isCurrentWeek) {
                 todayBtn.innerHTML = 'This Week';
