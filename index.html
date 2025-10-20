@@ -188,7 +188,23 @@
 
         // --- App ID and Firebase Config ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'waffle-wednesday-dev';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "DEMO", authDomain: "DEMO", projectId: "DEMO" };
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "firebase/app";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+        apiKey: "AIzaSyDz8oXFpj0GFHeLz0Q5WW2OMF7JZl974Xw",
+        authDomain: "waffle-wednesday-hub.firebaseapp.com",
+        projectId: "waffle-wednesday-hub",
+        storageBucket: "waffle-wednesday-hub.firebasestorage.app",
+        messagingSenderId: "73629645175",
+        appId: "1:73629645175:web:185952db743905e5730972"
+        };
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
         
         // --- Firebase Initialization ---
         const app = initializeApp(firebaseConfig);
